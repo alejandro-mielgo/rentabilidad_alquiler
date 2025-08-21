@@ -34,8 +34,6 @@ def generate_variable(low:float,
         return np.random.triangular(left=low, mode=(high+low)/2, right=high, size=n_samples)
 
 
-
-
 def generate_histogram(data:np.ndarray, title:str, bins:int=16, save:bool=False) ->Figure:
     fig, ax = plt.subplots()
     ax.hist(data, bins=bins, edgecolor='black')

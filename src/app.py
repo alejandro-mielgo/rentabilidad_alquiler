@@ -1,5 +1,6 @@
 import streamlit as st
 from montecarlo import generate_variable, generate_histogram
+from hipoteca import calcular_hipoteca
 
 dist_options = {"normal":"normal","uniforme":"uniform","triangular":"triangular"}
 
@@ -8,6 +9,17 @@ st.markdown("# Calculadora rentabilidad del alquiler")
 
 precio_compra= st.number_input("Precio de compra", min_value=0, value=200_000, step=1000)
 impuestos_compra = st.number_input("Impuestos", min_value=0.0, max_value=1.0, value=0.08)
+
+hipoteca = st.checkbox("Hipoteca")
+if hipoteca:
+    importe_hipoteca = st.number_input("Importe hipoteca", min_value=0, value=150000, step=1000)
+    plazo_hipoteca = st.number_input("Plazo de la hipoteca (años)", min_value=1, value=30, step=1)
+    tipo_interes = st.number_input("Tipo de interés (anual)", min_value=0.0, value=3.0, step=0.1)
+    cuota,total_intereses, intereses_1_year,pagos = calcular_hipoteca(importe_hipoteca, plazo_hipoteca, tipo_interes/100)
+    st.write(f"Cuota mensual: {cuota:.2f} €")
+    st.write(f"Intereses primer año: {intereses_1_year:.2f} €")
+    st.write(f"Intereses total: {total_intereses:.2f} €")
+    st.markdown("---")
 
 c1,c2,c3 = st.columns(3)
 with c1:
@@ -66,17 +78,30 @@ coste_muebles = generate_variable(coste_muebles_min, coste_muebles_max,n,dist_ga
 alquiler_mensual = generate_variable(alquiler_mensual_min,alquiler_mensual_max,n,dist_alquiler)
 tasa_ocupacion = generate_variable(tasa_ocupacion_min, tasa_ocupacion_max, n, dist_tasa_ocupacion)
 
+
+
 comunidad = generate_variable(gastos_comunidad_min, gastos_comunidad_max, n, dist_gatos_comunidad)
 ibi = generate_variable(gastos_ibi_min, gastos_ibi_max, n, dist_gatos_ibi)
 seguro = generate_variable(gastos_seguro_min, gastos_seguro_max, n, dist_gatos_seguro)
 mantenimiento = generate_variable(gastos_mantenimiento_min,gastos_mantenimiento_max,n,dist_gatos_mantenimiento)
 
+
+
 inversion_total = precio_compra*(1+impuestos_compra) + coste_reforma + coste_muebles + gastos_notaria
 alquiler_anual_bruto = alquiler_mensual*12*tasa_ocupacion
 alquiler_anual_neto = alquiler_anual_bruto -comunidad -ibi -seguro -mantenimiento
 
+cash_flow_mensual = alquiler_anual_neto/12
 rentabilidad_bruta = alquiler_anual_bruto/inversion_total
 rentabilidad_neta = alquiler_anual_neto/inversion_total
 
-fig = generate_histogram(rentabilidad_neta,"rentabilidad neta", bins=30)
-st.pyplot(fig)
+if hipoteca:
+    inversion_total = precio_compra*impuestos_compra + (precio_compra-importe_hipoteca) + coste_reforma + coste_muebles + gastos_notaria
+    cash_flow_mensual = cash_flow_mensual - cuota
+    rentabilidad_bruta = alquiler_anual_bruto/inversion_total
+    rentabilidad_neta = (alquiler_anual_neto - intereses_1_year)/inversion_total
+
+fig_rentabilidad = generate_histogram(rentabilidad_neta,"rentabilidad neta", bins=30)
+fig_cash_flow= generate_histogram(cash_flow_mensual,"cash flow mensual neto", bins=30)
+st.pyplot(fig_rentabilidad)
+st.pyplot(fig_cash_flow)
